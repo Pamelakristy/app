@@ -1,47 +1,71 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request
+import re
+import math
+import random
 
 app = Flask(__name__)
 
-# Define a function to generate chatbot responses
-def get_bot_response(user_message):
-    user_message = user_message.strip().lower()  # Clean and standardize user input
-
-    # Keyword-based responses (you can expand this with more logic later)
-    if "hello" in user_message:
-        return "Hi there! How can I assist you today?"
-    elif "bye" in user_message:
-        return "Goodbye! Have a great day!"
-    elif "help" in user_message:
-        return "I'm here to assist you. You can ask me about anything!"
+# Fungsi percakapan
+def handle_conversation(user_text):
+    user_text = user_text.lower()
+    if "hello" in user_text or "halo" in user_text or "hai" in user_text or "hi" in user_text:
+        return "Haiii!! Ada yang bisa aku bantu?"
+    elif "aku pusing banget" in user_text or "gangerti mtk" in user_text or "bantu pliss" in user_text:
+        return "Butuh bantuan apaaa aku bisa kokk semoga."
+    elif "kamu siapa" in user_text:
+        return "Aku math bot yang bisa membantu kamu dalam perhitungan dasar. Kehadiran aku membuat kamu merasakan sesuatu yang lebih interaktif."
+    elif "byee" in user_text or "thank you" in user_text:
+        return "Byee sama- sama!!"
     else:
-        return "Sorry, I didn't understand that. Could you rephrase?"
+        return "Maaf, aku hanya bisa membantu dengan soal matematika dan bercanda!"
 
-# Route for handling chat requests
-@app.route('/chat', methods=['POST'])
-def chat():
+# Fungsi untuk memeriksa ekspresi matematika
+def is_math_expression(user_text):
+    math_pattern = r'^[0-9\+\-\/%\s\(\)\.\\*sqrt]+$'
+    return re.match(math_pattern, user_text.strip())
+
+# Fungsi untuk evaluasi ekspresi matematika
+def solve_math_expression(user_text):
     try:
-        # Ensure JSON data was sent
-        data = request.get_json()
-
-        # Check if 'message' field exists in the JSON data
-        if not data or "message" not in data:
-            return jsonify({"error": "Invalid request, 'message' field is missing"}), 400
-
-        user_message = data.get("message")
-
-        # Validate that the user message is not empty
-        if not user_message.strip():
-            return jsonify({"response": "Please enter a valid message."}), 400
-
-        # Get a response from the bot
-        bot_response = get_bot_response(user_message)
-
-        # Return the bot's response
-        return jsonify({"response": bot_response})
-
+        user_text = user_text.replace("sqrt(", "math.sqrt(")
+        result = eval(user_text)
+        return str(result)
     except Exception as e:
-        # Handle any unexpected errors
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        return "Error solving math expression."
 
-if __name__ == '__main__':
+# Daftar jokes yang akan diberikan oleh chatbot
+jokes_list = [
+    "Kamu itu seperti konstanta Pi, tak terhingga dan selalu bikin aku terpana.",
+    "Hubungan kita kayak garis paralel, selalu sejajar dan nggak akan pernah berpisah.",
+    "Kalau kamu jadi variabel X, aku bakal jadi Y, biar kita selalu ada dalam persamaan yang sama.",
+    "Kamu seperti akar dari -1, nggak nyata tapi selalu ada dalam pikiranku.",
+    "Aku boleh nggak jadi turunanmu? Biar aku selalu mengejar perubahan kecil dalam hidupmu.",
+    "Kalau kamu sudut, aku pasti 90 derajat, karena aku jatuh tegak lurus mencintaimu.",
+    "Aku dan kamu bagaikan himpunan, selalu saling melengkapi dan tak terpisahkan.",
+    "Kamu seperti eksponensial, semakin lama semakin membuat hati ini berdegup lebih cepat.",
+    "Jangan jadi irasional, biarkan kita jadi satu pasangan sempurna.",
+    "Kita itu kayak limit, semakin dekat tanpa batas, walaupun nggak pernah benar-benar bertemu.",
+    
+]
+
+# Fungsi utama chatbot response
+def chatbot_response(user_text):
+    if "joke" in user_text.lower() or "jokes" in user_text.lower():
+        return random.choice(jokes_list)
+    elif is_math_expression(user_text):
+        return solve_math_expression(user_text)
+    else:
+        return handle_conversation(user_text)
+
+@app.route("/")
+def main():
+    return render_template("index.html")
+
+@app.route("/get")
+def get_chatbot_response():
+    user_message = request.args.get('userMessage')
+    response = chatbot_response(user_message)
+    return str(response)
+
+if __name__ == "__main__":
     app.run(debug=True)
